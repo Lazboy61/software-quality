@@ -7,9 +7,15 @@ import logging
 from datetime import datetime
 import shutil
 import re
+from config import CITIES
+from ..database.encryption import EncryptionManager
+from auth import main as auth_main
+from database import Database
+from config import DB_NAME, LOG_FILE
 
-DB_NAME = "software_quality.db"
-BACKUP_DIR = "backups"
+
+
+
 
 # 🔐 Wachtwoord hashen
 def hash_password(password):
@@ -33,11 +39,14 @@ fernet = Fernet(load_key())
 
 # 🔓 Gegevens decrypten
 def decrypt_data(encrypted_data):
+    if not encrypted_data:
+        return ""
     try:
         return fernet.decrypt(encrypted_data.encode()).decode()
     except Exception as e:
         logging.error(f"Decryptie fout: {e}")
-        return None
+        return "⚠️ Ongeldig"
+
 
 # 🛠️ Database initialiseren
 def initialize_database():
@@ -104,14 +113,13 @@ def initialize_database():
     """)
 
     # Maak superadmin aan als die nog niet bestaat
-    cursor.execute("SELECT id FROM users WHERE username = 'superadmin'")
-    if not cursor.fetchone():
-        password_hash = hash_password("admin123").decode()
-        cursor.execute("""
-            INSERT INTO users (username, password_hash, role)
-            VALUES (?, ?, ?)
-        """, ("superadmin", password_hash, "superadmin"))
-        logging.info("Superadmin account aangemaakt")
+    cursor.execute("SELECT id FROM users WHERE username = 'super_admin'")  # Aangepast van 'superadmin'
+if not cursor.fetchone():
+    password_hash = hash_password("Admin_123?").decode()  # Aangepast van 'admin123'
+    cursor.execute("""
+        INSERT INTO users (username, password_hash, role)
+        VALUES (?, ?, ?)
+    """, ("super_admin", password_hash, "superadmin"))
 
     conn.commit()
     conn.close()
@@ -728,7 +736,7 @@ def register_user():
 
 # Logging instellen
 logging.basicConfig(
-    filename="app.log",
+    filename=LOG_FILE,
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     filemode='a'
@@ -737,7 +745,9 @@ logging.basicConfig(
 # ▶️ Start
 def main():
     initialize_database()
-    
+    db = Database()
+    auth_main(db)
+
     while True:
         print("\n=== Startmenu ===")
         print("1. Inloggen")
