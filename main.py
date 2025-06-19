@@ -52,19 +52,13 @@ def initialize_database():
     cursor = conn.cursor()
 
     # USERS TABEL
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        role TEXT CHECK(role IN ('superadmin', 'sysadmin', 'engineer')) NOT NULL,
-        email TEXT,
-        license_number TEXT,
-        first_name TEXT,
-        last_name TEXT,
-        registration_date TEXT DEFAULT CURRENT_TIMESTAMP
-    );
-    """)
+    cursor.execute("SELECT id FROM users WHERE username = 'super_admin'")
+    if not cursor.fetchone():
+        password_hash = hash_password("Admin_123?").decode()
+        cursor.execute("""
+            INSERT INTO users (username, password_hash, role, first_name, last_name)
+            VALUES (?, ?, ?, ?, ?)
+        """, ("super_admin", password_hash, "superadmin", "Super", "Admin")) 
 
     # TRAVELLERS TABEL
     cursor.execute("""
@@ -162,29 +156,54 @@ def restore_database():
 def register_traveller():
     print("\n=== Nieuwe traveller registreren ===")
     
-    first_name = input("Voornaam: ")
-    last_name = input("Achternaam: ")
+    # Naam validatie
+    while True:
+        first_name = input("Voornaam: ").strip()
+        if first_name:
+            break
+        print("Voornaam mag niet leeg zijn")
+    
+    while True:
+        last_name = input("Achternaam: ").strip()
+        if last_name:
+            break
+        print("Achternaam mag niet leeg zijn")
+
+    # Andere velden...
     birthday = input("Geboortedatum (YYYY-MM-DD): ")
-    gender = input("Geslacht (M/V/X): ")
+    gender = input("Geslacht (M/V/X): ").upper()
     street_name = input("Straatnaam: ")
     house_number = input("Huisnummer: ")
-    zip_code = input("Postcode: ")
+    
+    # Postcode validatie
+    while True:
+        zip_code = input("Postcode (bijv. 1234AB): ").upper().replace(" ", "")
+        if re.match(r'^[1-9][0-9]{3}[A-Za-z]{2}$', zip_code):
+            break
+        print("Ongeldige postcode. Voorbeeld: 1234AB")
+    
     city = input("Woonplaats: ")
-    email = input("E-mail: ")
     
-    # Rijbewijsnummer validatie (10 tekens)
+    # E-mail validatie
     while True:
-        license_number = input("Rijbewijsnummer (10 tekens): ")
-        if len(license_number) == 10:
+        email = input("E-mail: ").strip()
+        if '@' in email and '.' in email.split('@')[-1]:
             break
-        print("Rijbewijsnummer moet precies 10 tekens lang zijn")
+        print("Ongeldig e-mail formaat")
     
-    # Telefoonnummer validatie (10-15 cijfers)
+    # Rijbewijs validatie
     while True:
-        phone_number = input("Telefoonnummer (10-15 cijfers): ")
-        if re.match(r'^\d{10,15}$', phone_number):
+        license_number = input("Rijbewijsnummer (formaat: 1234AB5678): ").upper().replace(" ", "")
+        if re.match(r'^\d{4}[A-Za-z]{2}\d{4}$', license_number):
             break
-        print("Ongeldig telefoonnummer. Gebruik 10-15 cijfers")
+        print("Ongeldig formaat. Voorbeeld: 1234AB5678")
+    
+    # Telefoon validatie
+    while True:
+        phone_number = input("Telefoonnummer (10 cijfers): ").replace(" ", "")
+        if re.match(r'^[0-9]{10}$', phone_number):
+            break
+        print("Moet precies 10 cijfers zijn")
 
     try:
         conn = sqlite3.connect(DB_NAME)
@@ -202,13 +221,10 @@ def register_traveller():
         
         conn.commit()
         print("\n✅ Traveller succesvol geregistreerd")
-        logging.info(f"Nieuwe traveller geregistreerd: {first_name} {last_name}")
-    except sqlite3.IntegrityError as e:
+    except sqlite3.IntegrityError:
         print("\n❌ Fout: Rijbewijsnummer bestaat al")
-        logging.warning(f"Traveller registratie fout: {e}")
     except Exception as e:
-        print("\n❌ Er ging iets mis bij de registratie")
-        logging.error(f"Traveller registratie fout: {e}")
+        print(f"\n❌ Er ging iets mis: {str(e)}")
     finally:
         conn.close()
 
@@ -236,6 +252,83 @@ def view_travellers():
     finally:
         conn.close()
 
+def edit_traveller():
+    print("\n=== Traveller Bewerken ===")
+    view_travellers()
+    
+    traveller_id = input("\nID van traveller om te bewerken (0 om te annuleren): ")
+    if traveller_id == "0":
+        return
+    
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM travellers WHERE id = ?", (traveller_id,))
+        traveller = cursor.fetchone()
+        
+        if not traveller:
+            print("❌ Traveller niet gevonden")
+            return
+        
+        print("\nKies veld om te bewerken:")
+        print(f"1. Voornaam: {traveller[1]}")
+        print(f"2. Achternaam: {traveller[2]}")
+        print(f"3. Rijbewijsnummer: {traveller[10]}")
+        print(f"4. Telefoonnummer: {traveller[11]}")
+        
+        field = input("\nKeuze (1-4, 0 om te annuleren): ")
+        if field == "0":
+            return
+            
+        new_value = input("Nieuwe waarde: ")
+        
+        # Eenvoudige validatie
+        if field in ["1", "2"] and not new_value.strip():
+            print("Naam mag niet leeg zijn")
+            return
+            
+        if field == "3" and not re.match(r'^\d{4}[A-Za-z]{2}\d{4}$', new_value):
+            print("Ongeldig rijbewijsnummer formaat")
+            return
+            
+        if field == "4" and not re.match(r'^[0-9]{10}$', new_value):
+            print("Ongeldig telefoonnummer")
+            return
+            
+        fields = ["", "first_name", "last_name", "", "", "", "", "", "", "license_number", "phone_number"]
+        field_name = fields[int(field)]
+        
+        cursor.execute(f"UPDATE travellers SET {field_name} = ? WHERE id = ?", (new_value, traveller_id))
+        conn.commit()
+        print("✅ Traveller bijgewerkt")
+        
+    except Exception as e:
+        print(f"❌ Fout: {str(e)}")
+    finally:
+        conn.close()
+
+def delete_traveller():
+    print("\n=== Traveller Verwijderen ===")
+    view_travellers()
+    
+    traveller_id = input("\nID van traveller om te verwijderen (0 om te annuleren): ")
+    if traveller_id == "0":
+        return
+    
+    confirm = input(f"Weet je zeker dat je traveller {traveller_id} wilt verwijderen? (j/n): ")
+    if confirm.lower() != 'j':
+        return
+    
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM travellers WHERE id = ?", (traveller_id,))
+        conn.commit()
+        print("✅ Traveller verwijderd")
+    except Exception as e:
+        print(f"❌ Fout: {str(e)}")
+    finally:
+        conn.close()
 # 🛵 Scooter toevoegen
 def add_scooter():
     print("\n=== Nieuwe Scooter Toevoegen ===")
@@ -514,6 +607,7 @@ def scooter_menu(role):
         print("1. Scooters bekijken")
         print("2. Scooter toevoegen")
         print("3. Scooter bewerken")
+        print("4. Scooter verwijderen") 
         print("0. Terug naar hoofdmenu")
 
         choice = input("\nKeuze: ")
@@ -535,6 +629,9 @@ def traveller_menu(role):
         print("\n=== Traveller Beheer ===")
         print("1. Travellers bekijken")
         print("2. Traveller registreren")
+        if role in ['superadmin', 'sysadmin']:  # Alleen voor beheerders
+            print("3. Traveller bewerken")
+            print("4. Traveller verwijderen")
         print("0. Terug naar hoofdmenu")
 
         choice = input("\nKeuze: ")
@@ -545,8 +642,12 @@ def traveller_menu(role):
             view_travellers()
         elif choice == "2":
             register_traveller()
+        elif choice == "3" and role in ['superadmin', 'sysadmin']:
+            edit_traveller()
+        elif choice == "4" and role in ['superadmin', 'sysadmin']:
+            delete_traveller()
         else:
-            print("\n❌ Ongeldige keuze")
+            print("\n❌ Ongeldige keuze of geen rechten")
 
 # 🛵 Scooters bekijken
 def view_scooters():
@@ -620,12 +721,48 @@ def manage_users():
             print(f"{user[0]} | {user[1]} | {user[2]} | {user[3]} {user[4]} | {user[5]}")
 
         print("\nOpties:")
-        print("1. Gebruiker verwijderen")
-        print("2. Gebruikersrol wijzigen")
+        print("1. Nieuwe gebruiker toevoegen")
+        print("2. Gebruiker verwijderen")
+        print("3. Gebruikersrol wijzigen")
         print("0. Terug naar hoofdmenu")
         choice = input("\nKeuze: ")
 
         if choice == "1":
+            print("\n=== Nieuwe gebruiker ===")
+            username = input("Gebruikersnaam: ")
+            
+            # Wachtwoord validatie
+            while True:
+                password = getpass.getpass("Wachtwoord (min 12 tekens, 1 hoofdletter, 1 cijfer, 1 speciaal teken): ")
+                if (len(password) >= 12 and 
+                    any(c.isupper() for c in password) and 
+                    any(c.isdigit() for c in password) and 
+                    any(not c.isalnum() for c in password)):
+                    break
+                print("Wachtwoord voldoet niet aan de eisen!")
+            
+            # Rol selectie
+            while True:
+                role = input("Rol (sysadmin/engineer): ").lower()
+                if role in ['sysadmin', 'engineer']:
+                    break
+                print("Ongeldige rol. Kies 'sysadmin' of 'engineer'")
+            
+            first_name = input("Voornaam: ")
+            last_name = input("Achternaam: ")
+            
+            try:
+                password_hash = hash_password(password).decode()
+                cursor.execute("""
+                    INSERT INTO users (username, password_hash, role, first_name, last_name)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (username, password_hash, role, first_name, last_name))
+                conn.commit()
+                print(f"\n✅ Gebruiker {username} succesvol toegevoegd als {role}")
+            except sqlite3.IntegrityError:
+                print("\n❌ Gebruikersnaam bestaat al")
+
+        elif choice == "2":
             user_id = input("ID van te verwijderen gebruiker: ")
             if user_id == "1":
                 print("\n❌ Superadmin kan niet verwijderd worden")
@@ -635,7 +772,8 @@ def manage_users():
             conn.commit()
             print("\n✅ Gebruiker verwijderd")
             logging.info(f"Gebruiker verwijderd (ID: {user_id})")
-        elif choice == "2":
+
+        elif choice == "3":
             user_id = input("ID van gebruiker om rol te wijzigen: ")
             if user_id == "1":
                 print("\n❌ Superadmin rol kan niet gewijzigd worden")
@@ -650,6 +788,7 @@ def manage_users():
             conn.commit()
             print("\n✅ Gebruikersrol bijgewerkt")
             logging.info(f"Gebruiker {user_id} rol gewijzigd naar {new_role}")
+
     except Exception as e:
         logging.error(f"Gebruikersbeheer fout: {e}")
         print("\n❌ Fout bij gebruikersbeheer")

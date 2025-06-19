@@ -3,3 +3,37 @@
 2025-06-19 10:10:14,331 - INFO - Database geïnitialiseerd
 2025-06-19 10:11:03,657 - INFO - Succesvolle login: super_admin (superadmin)
 2025-06-19 10:11:28,873 - INFO - Applicatie afgesloten
+2025-06-19 11:11:51,679 - INFO - Database geïnitialiseerd
+2025-06-19 11:12:13,383 - INFO - Succesvolle login: super_admin (superadmin)
+2025-06-19 11:12:41,347 - INFO - Applicatie afgesloten
+2025-06-19 11:12:54,353 - INFO - Database geïnitialiseerd
+2025-06-19 11:13:19,216 - INFO - Succesvolle login: super_admin (superadmin)
+2025-06-19 11:14:42,599 - INFO - Nieuwe traveller geregistreerd: Hasan cakir
+2025-06-19 11:15:26,523 - WARNING - Scooter toevoegen: serienummer bestaat al
+2025-06-19 11:15:47,997 - INFO - Nieuwe scooter toegevoegd: bmw 7 (kwrgwigwgnw)
+2025-06-19 11:16:05,866 - INFO - Backup gemaakt: backups/scooter_management.db.backup_20250619_111605
+2025-06-19 11:23:00,293 - INFO - Applicatie afgesloten
+2025-06-19 11:23:08,787 - INFO - Database geïnitialiseerd
+2025-06-19 11:32:38,237 - INFO - Succesvolle login: super_admin (superadmin)
+2025-06-19 11:32:48,947 - WARNING - Mislukte loginpoging voor: super_admin
+2025-06-19 11:32:56,802 - WARNING - Mislukte loginpoging voor: Superd
+2025-06-19 11:33:06,451 - INFO - Succesvolle login: super_admin (superadmin)
+2025-06-19 11:38:49,385 - INFO - Applicatie afgesloten
+2025-06-19 11:38:59,234 - INFO - Database geïnitialiseerd
+2025-06-19 11:39:17,453 - INFO - Succesvolle login: super_admin (superadmin)
+2025-06-19 11:40:48,646 - INFO - Gebruiker 2 rol gewijzigd naar sysadmin
+2025-06-19 11:40:56,197 - INFO - Gebruiker verwijderd (ID: 2)
+2025-06-19 11:42:25,222 - INFO - Nieuwe traveller geregistreerd: jack jackson
+2025-06-19 11:43:58,473 - INFO - Applicatie afgesloten
+2025-06-19 11:44:10,129 - INFO - Database geïnitialiseerd
+2025-06-19 11:44:18,595 - INFO - Succesvolle login: super_admin (superadmin)
+2025-06-19 11:45:01,577 - INFO - Nieuwe traveller geregistreerd:  
+2025-06-19 12:15:08,915 - INFO - Applicatie afgesloten
+2025-06-19 12:16:20,321 - INFO - Database geïnitialiseerd
+2025-06-19 12:16:37,338 - INFO - Succesvolle login: super_admin (superadmin)
+2025-06-19 12:17:57,353 - INFO - Applicatie afgesloten
+2025-06-19 12:20:26,255 - INFO - Database geïnitialiseerd
+2025-06-19 12:20:36,124 - INFO - Succesvolle login: super_admin (superadmin)
+2025-06-19 12:21:17,515 - INFO - Scooter 1 bijgewerkt: mileage=120444
+2025-06-19 12:21:41,360 - INFO - Backup gemaakt: backups/scooter_management.db.backup_20250619_122141
+2025-06-19 12:21:59,851 - INFO - Applicatie afgesloten
