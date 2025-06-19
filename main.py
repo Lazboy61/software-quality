@@ -7,15 +7,10 @@ import logging
 from datetime import datetime
 import shutil
 import re
-from config import CITIES
-from ..database.encryption import EncryptionManager
-from auth import main as auth_main
-from database import Database
-from config import DB_NAME, LOG_FILE
 
-
-
-
+DB_NAME = "scooter_management.db"
+BACKUP_DIR = "backups"
+LOG_FILE = "app.log"
 
 # 🔐 Wachtwoord hashen
 def hash_password(password):
@@ -114,12 +109,12 @@ def initialize_database():
 
     # Maak superadmin aan als die nog niet bestaat
     cursor.execute("SELECT id FROM users WHERE username = 'super_admin'")  # Aangepast van 'superadmin'
-if not cursor.fetchone():
-    password_hash = hash_password("Admin_123?").decode()  # Aangepast van 'admin123'
-    cursor.execute("""
-        INSERT INTO users (username, password_hash, role)
-        VALUES (?, ?, ?)
-    """, ("super_admin", password_hash, "superadmin"))
+    if not cursor.fetchone():
+        password_hash = hash_password("Admin_123?").decode()  # Aangepast van 'admin123'
+        cursor.execute("""
+            INSERT INTO users (username, password_hash, role)
+            VALUES (?, ?, ?)
+        """, ("super_admin", password_hash, "superadmin"))
 
     conn.commit()
     conn.close()
@@ -445,26 +440,29 @@ def view_scooter_maintenance():
 def show_menu(user_id, role):
     while True:
         print(f"\n=== Hoofdmenu ({role.upper()}) ===")
-
+        
         if role == "superadmin":
+            # Superadmin menu opties
             print("1. Gebruikers beheren")
             print("2. Travellers beheren")
             print("3. Scooters beheren")
-            print("4. Mijn gegevens")
-            print("5. Database backup")
-            print("6. Database restore")
+            print("4. Backups beheren")
+            print("5. Logs bekijken")
             print("0. Uitloggen")
+            
         elif role == "sysadmin":
+            # Sysadmin menu opties
             print("1. Travellers beheren")
             print("2. Scooters beheren")
-            print("3. Mijn gegevens")
-            print("4. Database backup")
+            print("3. Service Engineers beheren")
+            print("4. Backups maken")
+            print("5. Logs bekijken")
             print("0. Uitloggen")
+            
         elif role == "engineer":
-            print("1. Scooter locaties bekijken")
-            print("2. Scooter onderhoud bekijken")
-            print("3. Scooter status bijwerken")
-            print("4. Mijn gegevens")
+            # Engineer menu opties
+            print("1. Scooter status bekijken")
+            print("2. Scooter status bijwerken")
             print("0. Uitloggen")
 
         choice = input("\nKeuze: ")
@@ -745,13 +743,11 @@ logging.basicConfig(
 # ▶️ Start
 def main():
     initialize_database()
-    db = Database()
-    auth_main(db)
-
+    
     while True:
         print("\n=== Startmenu ===")
         print("1. Inloggen")
-        print("2. Registreren")
+        print("2. Registreren (alleen voor systeembeheerders)")
         print("0. Stoppen")
 
         choice = input("\nKeuze: ")
@@ -760,7 +756,9 @@ def main():
             if user_id:
                 show_menu(user_id, role)
         elif choice == "2":
-            register_user()
+            # Alleen superadmin mag nieuwe sysadmins aanmaken
+            # Andere gebruikers moeten door superadmin/sysadmin aangemaakt worden
+            print("\nNieuwe gebruikers moeten door een beheerder aangemaakt worden")
         elif choice == "0":
             print("\nTot ziens!")
             logging.info("Applicatie afgesloten")
